@@ -68,14 +68,10 @@ public class HuntBehaviour extends SimpleBehaviour {
 	}
 
 	public void action() {
-		
-		// Normalement, lorsque ce behaviour est activé, la map est totalement explorée
-		//assertNotNull("La map est vide après l'exploration", this.myMap);
 
 		//0) Retrieve the current position
 		Location myPosition = ((AbstractDedaleAgent)this.myAgent).getCurrentPosition();
-		//System.out.println("Agent " + this.myAgent.getLocalName() + " at position " + myPosition);
-		
+				
 		myMap= agent.getAgentMap();
 		
 		try {
@@ -84,6 +80,8 @@ public class HuntBehaviour extends SimpleBehaviour {
 			e.printStackTrace();
 		}
 	
+		
+		//On met à jour la liste des positions bloquées avec la liste des positions des agents alliés connues
 		if (myPosition != null) {
 			checkPositionReceived();
 			for(String loc: agentsPositions.values()) {
@@ -92,10 +90,7 @@ public class HuntBehaviour extends SimpleBehaviour {
 				}
 			}
 			
-			//List<Couple<Location,List<Couple<Observation,Integer>>>> lobs = ((AbstractDedaleAgent)this.myAgent).observe();
-			//List<Location> smells= getSmells(lobs);
-			
-			
+			//Si on suit un golem, on regarde si toutes les cases voisines sont occupées par un allié
 			if(golemPosition!=null) {
 				List<String >golem_neighbours=this.myMap.getNeighbours(golemPosition);
 				boolean flag=true;
@@ -104,8 +99,9 @@ public class HuntBehaviour extends SimpleBehaviour {
 						flag=false;
 					}
 				}
+				//Si oui on passe au GolemBlockedBehaviour
 				if(flag) {
-					System.out.println("Golem blocked");
+					System.out.println("[" + this.myAgent.getLocalName() + "] GOLEM BLOCKED");
 					transitionValue=1;
 					((FSMTRYOUTAgent) myAgent).updateGolemPosition(golemPosition);
 					finished=true;
@@ -113,11 +109,6 @@ public class HuntBehaviour extends SimpleBehaviour {
 			}
 			
 			
-			//if(golemPosition!=null) {
-			//	if(!smells.contains(((AbstractDedaleAgent) this.myAgent).getCurrentPosition())) {
-			//		golemPosition=null;
-			//	}
-			//}
 			
 			// Cas où l'agent a repéré un golem, il tente d'aller sur sa
 			// position : soit il échoue et cela bloque le golem, soit
@@ -138,7 +129,7 @@ public class HuntBehaviour extends SimpleBehaviour {
 				// Aucun golem de repéré, on continue l'exploration
 			} else {
 			
-				checkGolemBlocked();
+				checkGolemBlockedHere();
 				// List of observable from the agent's current position
 				List<Couple<Location,List<Couple<Observation,Integer>>>> lobs = ((AbstractDedaleAgent)this.myAgent).observe();
 			
@@ -245,12 +236,19 @@ public class HuntBehaviour extends SimpleBehaviour {
 						// Si l'agent ne peut pas bouger on arrête d'essayer d'aller vers l'odeur partagée
 						//this.currentPath = null;
 					}
-					
 					blockedPositions.clear();
 				}
 			}
 		}
 	}
+	
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////    FIN ACTION DU BEHAVIOUR    ///////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	@Override
 	public boolean done() {
@@ -301,36 +299,64 @@ public class HuntBehaviour extends SimpleBehaviour {
 	 * @param l_smell
 	 * @return la position de l'odeur
 	 */
-	private Location chooseSmell(List<Location> l_smell){
-		/*
-		List<Location> l_smell=new ArrayList<>();
-		for(Location smell: l_smells) {
-			if(!nodesToIgnore.contains(smell)) {
-				l_smell.add(smell);
-			}
+	private Location chooseSmell(List<Location> l_smells){
+
+		boolean flag=false;
+		
+		if(nodesToIgnore!=null) {
+			flag=true;
 		}
-		*/
 		
-		
+		if(flag) {
+			List<Location> l_smell=new ArrayList<>();
+			for(Location smell: l_smells) {
+				if(!nodesToIgnore.contains(smell)) {
+					l_smell.add(smell);
+				}
+			}
+			
+			
+			if (l_smell.size() == 1 && !this.nodesToIgnore.contains(l_smell.get(0).getLocationId())) {
+				return l_smell.get(0);
+			}
+			
+			
+			// S'il y a plus d'une odeur et que l'agent se situe déjà sur une odeur
+			// Si l'agent est sur une odeur, c'est forcément la première odeur
+			if( l_smell.size()>1 && l_smell.get(0) == ((AbstractDedaleAgent) this.myAgent).getCurrentPosition()) {
+			
+				// On se déplace de manière aléatoire
+				Random r = new Random();
+				int moveId = 1 + r.nextInt(l_smell.size()-1);
+				return l_smell.get(moveId);	
+			}
+			
+			Random r = new Random();
+			int moveId = r.nextInt(l_smell.size());
+			return l_smell.get(moveId);
+			
+		}else {
+			
 		// S'il n'y a qu'une odeur on retourne cette dernière 
-		if (l_smell.size() == 1 && !this.nodesToIgnore.contains(l_smell.get(0))) {
-			return l_smell.get(0);
+		if (l_smells.size() == 1) {
+			return l_smells.get(0);
 		}
 		
 		
 		// S'il y a plus d'une odeur et que l'agent se situe déjà sur une odeur
 		// Si l'agent est sur une odeur, c'est forcément la première odeur
-		if( l_smell.size()>1 && l_smell.get(0) == ((AbstractDedaleAgent) this.myAgent).getCurrentPosition()) {
+		if( l_smells.size()>1) {
 		
 			// On se déplace de manière aléatoire
 			Random r = new Random();
-			int moveId = 1 + r.nextInt(l_smell.size()-1);
-			return l_smell.get(moveId);	
+			int moveId = 1 + r.nextInt(l_smells.size()-1);
+			return l_smells.get(moveId);	
 		}
 		
 		Random r = new Random();
-		int moveId = r.nextInt(l_smell.size());
-		return l_smell.get(moveId);
+		int moveId = r.nextInt(l_smells.size());
+		return l_smells.get(moveId);
+		}
 	}
 	
 	
@@ -351,7 +377,11 @@ public class HuntBehaviour extends SimpleBehaviour {
         }
         
         // On se déplace de manière aléatoire vers une position libre
-        if(!freePositions.isEmpty()) {
+        if(freePositions.size()==1) {
+        	return freePositions.get(0);
+        }
+        
+        if(!freePositions.isEmpty() && freePositions.size()>1) {
             Random random = new Random();
             int randomIndex = 1+random.nextInt(freePositions.size()-1);
             return freePositions.get(randomIndex);
@@ -405,7 +435,7 @@ public class HuntBehaviour extends SimpleBehaviour {
 		}
 	}
 	
-	private void checkGolemBlocked() {
+	private void checkGolemBlockedHere() {
 		MessageTemplate msgTemplate = MessageTemplate.and(
 				MessageTemplate.MatchProtocol("BLOCKED-GOLEM-POSITION"),
 				MessageTemplate.MatchPerformative(ACLMessage.INFORM));
@@ -417,9 +447,11 @@ public class HuntBehaviour extends SimpleBehaviour {
 		if (msgReceived != null) {			
 			// On récupère la position du golem bloqué
 			position = msgReceived.getContent();
+			this.nodesToIgnore=getNeighbours(position,2);
 			
 		}
-		this.nodesToIgnore=getNeighbours(position,3);
+		//System.out.println("ICI "+position);
+		
 		
 		
 	}
@@ -429,13 +461,15 @@ public class HuntBehaviour extends SimpleBehaviour {
 		result.add(pos);
 		int cpt=0;
 		while(cpt<range) {
+			List<String> temp= new ArrayList<>(result);
 			for(String p:result) {
 				List<String >neighbours=this.myMap.getNeighbours(p);
 				for(String neigh:neighbours) {
-					result.add(neigh);
+					temp.add(neigh);
 				}
-			
 			}
+			result.addAll(temp);
+	        cpt++;
 		}
 		
 		return result;

@@ -71,6 +71,8 @@ public class ExploWithGolemBehaviour extends SimpleBehaviour {
 		
 		myMap= agent.getAgentMap();
 
+		transitionValue=0;
+		
 		// On récupère la position courante de l'agent
 		Location myPosition = ((AbstractDedaleAgent)this.myAgent).getCurrentPosition();
 		
@@ -139,7 +141,7 @@ public class ExploWithGolemBehaviour extends SimpleBehaviour {
 			if (!this.myMap.hasOpenNode()) {
 				
 				finished = true;
-				transitionValue=1;
+				transitionValue=2;
 				System.out.println(this.myAgent.getLocalName() + " - Exploration successufully done, behaviour removed.");
 				
 			} else {
@@ -168,6 +170,7 @@ public class ExploWithGolemBehaviour extends SimpleBehaviour {
 				if (nextNodeId != null && !((AbstractDedaleAgent)this.myAgent).moveTo(new gsLocation(nextNodeId))) {
 					// Si la position est bloquée, on l'ajoute à l'ensemble des
 					// positions bloquées
+					transitionValue=1;
 					blockedPositions.add(nextNodeId);
 					
 					//////////////////////
@@ -176,7 +179,7 @@ public class ExploWithGolemBehaviour extends SimpleBehaviour {
 					if(nextMove!=null) {
 						((AbstractDedaleAgent)this.myAgent).moveTo(nextMove);
 					}else {
-						System.out.println("jss bloqué");
+						System.out.println("[" + this.myAgent.getLocalName() + "] est bloqué");
 					}
 					//////////////////////
 					//////////////////////

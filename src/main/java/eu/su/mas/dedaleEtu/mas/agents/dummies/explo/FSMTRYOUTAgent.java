@@ -80,8 +80,9 @@ import jade.core.behaviours.FSMBehaviour;
 		//fsm.registerState(new SharePositionBehaviour(this,list_agentNames,agentsPositions),s4);
 		fsm.registerState(new GolemBlockedBehaviour(this,list_agentNames),s5);
 		
-		fsm.registerTransition(s1, s2,0);
-		fsm.registerTransition(s1, s3, 1);
+		fsm.registerTransition(s1, s1,0);
+		fsm.registerTransition(s1, s2,1);
+		fsm.registerTransition(s1, s3, 2);
 		
 		fsm.registerDefaultTransition(s2, s1);
 		

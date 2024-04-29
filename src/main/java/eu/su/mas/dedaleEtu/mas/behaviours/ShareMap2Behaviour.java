@@ -47,6 +47,12 @@ public class ShareMap2Behaviour extends SimpleBehaviour {
 		//System.out.println(agent);
 		myMap= agent.getAgentMap();
 		
+		try {
+			this.myAgent.doWait(500);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 		// Création du ping qui permet de savoir s'il y a des agents à
 		// proximité avec qui on peut partager la carte
 		ACLMessage ping = new ACLMessage(ACLMessage.INFORM);

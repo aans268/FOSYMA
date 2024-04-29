@@ -51,29 +51,49 @@ public class GolemBlockedBehaviour extends SimpleBehaviour {
 		myMap= agent.getAgentMap();
 		
 		try {
-			this.myAgent.doWait(3000);
+			this.myAgent.doWait(1000);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
 		// On récupère la position courante de l'agent
-		Location myPosition = ((AbstractDedaleAgent)this.myAgent).getCurrentPosition();
+		//Location myPosition = ((AbstractDedaleAgent)this.myAgent).getCurrentPosition();
 		
-		// On crée le message
-		ACLMessage ping = new ACLMessage(ACLMessage.INFORM);
-		ping.setProtocol("BLOCKED-GOLEM-POSITION");
-		ping.setSender(this.myAgent.getAID());
-		//ping.setContent(myPosition.getLocationId());
-		ping.setContent(agent.getGolemPosition());
+				
+		MessageTemplate msgTemplate = MessageTemplate.and(
+				MessageTemplate.MatchProtocol("SHARE-POSITION"),
+				MessageTemplate.MatchPerformative(ACLMessage.INFORM));
+		ACLMessage msgReceived = this.myAgent.receive(msgTemplate);
 		
-		// On partage le message à tous les autres agents
-		for (String agentName : receivers) {
-			ping.addReceiver(new AID(agentName,AID.ISLOCALNAME));
-		}
-		
-		// Envoie
-		((AbstractDedaleAgent)this.myAgent).sendMessage(ping);
-		
+		// L'agent a reçu un ping, il met donc à jour sa table des positions
+		if (msgReceived != null) {
+			// On récupère le nom de l'agent qui lui a envoyé sa position
+			
+			String sender = msgReceived.getSender().getLocalName();
+			
+			// On crée le message
+			ACLMessage ping = new ACLMessage(ACLMessage.INFORM);
+			
+			ping.setProtocol("BLOCKED-GOLEM-POSITION");
+			ping.setSender(this.myAgent.getAID());
+			ping.setContent(agent.getGolemPosition());
+			
+			ping.addReceiver(new AID(sender,AID.ISLOCALNAME));
+
+			((AbstractDedaleAgent)this.myAgent).sendMessage(ping);
+			
+			
+			ACLMessage ping2 = new ACLMessage(ACLMessage.INFORM);
+			ping2.setProtocol("SHARE-POSITION");
+			ping2.setSender(this.myAgent.getAID());
+			ping2.setContent(((AbstractDedaleAgent) this.myAgent).getCurrentPosition().getLocationId());
+			
+			ping2.addReceiver(new AID(sender,AID.ISLOCALNAME));
+			
+			// Envoie
+			((AbstractDedaleAgent)this.myAgent).sendMessage(ping2);
+
+		}	
 		
 	}
 
@@ -83,4 +103,5 @@ public class GolemBlockedBehaviour extends SimpleBehaviour {
 		return false;
 	}
 
+	
 }
